@@ -303,22 +303,23 @@ int LavaCommand::run(Terminal& terminal) const {
                 terminal.writeText(block ? blockGlyph : " ");
             }
         }
-        if (stats_) {
-            char overlay[64];
-            if (displayedFps <= 0.0) {
-                // No interval to measure yet on the very first frame.
-                std::snprintf(overlay, sizeof(overlay), " -- fps ");
-            } else if (displayedFence > 0.0) {
-                std::snprintf(overlay, sizeof(overlay), " %.1f fps  fence %.1f ms ",
-                              displayedFps, displayedFence);
-            } else {
-                std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
-            }
-            terminal.writeText(csi::cursorTo(1, 1));
-            terminal.setBGColor({0, 0, 0});
-            terminal.setTextColor({255, 255, 255});
-            terminal.writeText(overlay);
+        // The rate is always on show: it costs nothing but a clock read, and it is
+        // the whole point of pointing this at a terminal. The fence time joins it
+        // only under --stats, since that one costs a round trip per frame.
+        char overlay[64];
+        if (displayedFps <= 0.0) {
+            // No interval to measure yet on the very first frame.
+            std::snprintf(overlay, sizeof(overlay), " -- fps ");
+        } else if (displayedFence > 0.0) {
+            std::snprintf(overlay, sizeof(overlay), " %.1f fps  fence %.1f ms ",
+                          displayedFps, displayedFence);
+        } else {
+            std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
         }
+        terminal.writeText(csi::cursorTo(1, 1));
+        terminal.setBGColor({0, 0, 0});
+        terminal.setTextColor({255, 255, 255});
+        terminal.writeText(overlay);
         terminal.resetColor();
 
         const auto flushStart = Clock::now();
