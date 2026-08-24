@@ -85,9 +85,9 @@ int main(int argc, char* argv[]) {
         const int status = command->run(*terminal);
 
         // Hold the rendered screen so it is not scrolled away by the shell prompt.
-        // A command that already stopped on Ctrl-C, and one that failed, both fall
-        // through: the interrupt is spent, and an error should not hang.
-        if (status == 0) {
+        // A command that failed falls through, since an error should not hang, as
+        // does one that runs its own loop and has already finished.
+        if (status == 0 && command->holdsScreen()) {
             os::waitForInterrupt();
         }
         return status;

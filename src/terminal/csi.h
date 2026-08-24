@@ -35,6 +35,10 @@ std::string resize(int columns, int rows);
 
 std::string eraseDisplay();
 std::string cursorHome();
+std::string cursorTo(int row, int column);
+// Device Status Report, cursor position. The terminal answers ESC[row;colR, but only
+// after it has parsed everything queued ahead of the query. See fence.h.
+std::string deviceStatusReport();
 std::string hideCursor();
 std::string showCursor();
 

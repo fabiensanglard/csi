@@ -4,6 +4,7 @@
 #include "../os/terminal_os.h"
 #include "csi.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -54,7 +55,9 @@ public:
     // clearing, so the terminal never shows a blank screen between frames.
     void beginRepaint();
     void endFrame();
-    void commit();
+    // Returns the number of bytes flushed, which is what a throughput
+    // measurement needs and every other caller is free to ignore.
+    std::size_t commit();
     void writeText(const std::string& text);
     void setBold(bool enabled);
     void resetColor();

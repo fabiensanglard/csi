@@ -94,7 +94,10 @@ void printUsage(Terminal& terminal, const char* program) {
     terminal.writeText("   <c|bg>             Fill glyph or background\n");
     terminal.setTextColor({255, 255, 0});
     terminal.writeText("  --seconds");
-    terminal.writeText(" <n>               Stop after n seconds (default: Ctrl-C)\n\n");
+    terminal.writeText(" <n>               Stop after n seconds (default: Ctrl-C)\n");
+    terminal.setTextColor({255, 255, 0});
+    terminal.writeText("  --stats");
+    terminal.writeText("                     Show frame rate and report timing\n\n");
 
     terminal.setBold(true);
     terminal.writeText("Global options:\n");

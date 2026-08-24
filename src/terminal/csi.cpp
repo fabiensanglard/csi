@@ -54,6 +54,19 @@ std::string cursorHome() {
     return "\x1b[H";
 }
 
+std::string cursorTo(int row, int column) {
+    std::string sequence = "\x1b[";
+    appendNumber(sequence, row);
+    sequence += ';';
+    appendNumber(sequence, column);
+    sequence += 'H';
+    return sequence;
+}
+
+std::string deviceStatusReport() {
+    return "\x1b[6n";
+}
+
 std::string hideCursor() {
     return "\x1b[?25l";
 }

@@ -42,6 +42,13 @@ Quake's turbulent surface effect at 30 fps: a lava texture sampled through a sin
 warp that displaces each axis by the turbulence read at the other, so the surface
 rolls rather than slides. Runs until Ctrl-C, or `--seconds <n>`.
 
+`--stats` overlays the frame rate in the top-left corner and prints a timing
+breakdown on exit. The interesting number is `fence`: flushing a frame only tells
+you the kernel accepted the bytes, so instead each frame is followed by `ESC[6n`,
+whose reply a terminal cannot send until it has parsed everything queued ahead of
+it. That round trip is what the terminal actually spent on the frame. It measures
+processing, not pixels -- no terminal acknowledges a present.
+
 ```sh
 csi lava
 ```
@@ -79,6 +86,7 @@ fill options:
 lava options:
   --fill   <c|bg>             Fill glyph or background
   --seconds <n>               Stop after n seconds (default: Ctrl-C)
+  --stats                     Show frame rate and report timing
 
 Global options:
   --space  <16|256|RGB>       Terminal color space

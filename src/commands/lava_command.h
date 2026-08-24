@@ -9,8 +9,10 @@ class LavaCommand final : public Command {
 public:
 	void parseArgs(int argc, char* argv[]) override;
 	int run(Terminal& terminal) const override;
+	bool holdsScreen() const override { return false; }
 
 private:
 	FillStyle fillStyle_ = FillStyle::Background;
 	double seconds_ = 0.0;  // 0 runs until Ctrl-C
+	bool stats_ = false;
 };

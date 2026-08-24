@@ -1,10 +1,13 @@
 #include "lava_command.h"
 
+#include "../terminal/fence.h"
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <stdexcept>
 #include <vector>
 
@@ -180,6 +183,10 @@ double sampleTexture(const Texture& texture, double s, double t) {
 void LavaCommand::parseArgs(int argc, char* argv[]) {
     for (int argumentIndex = 0; argumentIndex < argc; ++argumentIndex) {
         const std::string argument = argv[argumentIndex];
+        if (argument == "--stats") {
+            stats_ = true;
+            continue;
+        }
         if (argument != "--fill" && argument != "--seconds") {
             throw std::invalid_argument("unknown option: " + argument);
         }
@@ -225,8 +232,30 @@ int LavaCommand::run(Terminal& terminal) const {
     const auto start = Clock::now();
     auto deadline = start;
 
+    // Three costs, measured apart. Build is our own work. Flush is fwrite plus
+    // fflush, which only reports backpressure: it returns once the kernel accepts
+    // the bytes, whether or not the terminal has looked at them. The fence is the
+    // honest one -- a round trip the terminal cannot answer until it has processed
+    // the frame. The sleep that paces the loop is outside all three.
+    Fence fence;
+    long long frames = 0;
+    long long buildMicros = 0;
+    long long flushMicros = 0;
+    long long fenceMicros = 0;
+    long long fenceFrames = 0;
+    long long buildMax = 0;
+    long long flushMax = 0;
+    long long fenceMax = 0;
+    unsigned long long bytes = 0;
+
+    // Smoothed so the readout is legible rather than flickering every frame.
+    double displayedFps = 0.0;
+    double displayedFence = 0.0;
+    auto previousFrame = Clock::now();
+
     bool cleared = false;
     while (!os::interrupted()) {
+        const auto frameStart = Clock::now();
         const double elapsed = std::chrono::duration<double>(Clock::now() - start).count();
         if (seconds_ > 0.0 && elapsed >= seconds_) {
             break;
@@ -274,8 +303,57 @@ int LavaCommand::run(Terminal& terminal) const {
                 terminal.writeText(block ? blockGlyph : " ");
             }
         }
+        if (stats_) {
+            char overlay[64];
+            if (displayedFps <= 0.0) {
+                // No interval to measure yet on the very first frame.
+                std::snprintf(overlay, sizeof(overlay), " -- fps ");
+            } else if (displayedFence > 0.0) {
+                std::snprintf(overlay, sizeof(overlay), " %.1f fps  fence %.1f ms ",
+                              displayedFps, displayedFence);
+            } else {
+                std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
+            }
+            terminal.writeText(csi::cursorTo(1, 1));
+            terminal.setBGColor({0, 0, 0});
+            terminal.setTextColor({255, 255, 255});
+            terminal.writeText(overlay);
+        }
         terminal.resetColor();
-        terminal.commit();
+
+        const auto flushStart = Clock::now();
+        const std::size_t written = terminal.commit();
+        const auto flushEnd = Clock::now();
+
+        const long long fenced = stats_ ? fence.wait() : -1;
+
+        const auto build = std::chrono::duration_cast<std::chrono::microseconds>(flushStart - frameStart).count();
+        const auto flush = std::chrono::duration_cast<std::chrono::microseconds>(flushEnd - flushStart).count();
+        ++frames;
+        buildMicros += build;
+        flushMicros += flush;
+        buildMax = build > buildMax ? build : buildMax;
+        flushMax = flush > flushMax ? flush : flushMax;
+        bytes += written;
+        if (fenced >= 0) {
+            ++fenceFrames;
+            fenceMicros += fenced;
+            fenceMax = fenced > fenceMax ? fenced : fenceMax;
+        }
+
+        // Rate over the whole frame, pacing sleep included, which is what the eye
+        // actually sees. A tenth weight settles in well under a second at 30 fps.
+        const auto frameEnd = Clock::now();
+        const double delta = std::chrono::duration<double>(frameEnd - previousFrame).count();
+        previousFrame = frameEnd;
+        if (delta > 0.0) {
+            const double instant = 1.0 / delta;
+            displayedFps = displayedFps > 0.0 ? displayedFps * 0.9 + instant * 0.1 : instant;
+        }
+        if (fenced >= 0) {
+            const double instant = fenced / 1000.0;
+            displayedFence = displayedFence > 0.0 ? displayedFence * 0.9 + instant * 0.1 : instant;
+        }
 
         // The deadline is absolute, so a frame that sleeps a little long is paid back
         // by the next one instead of dragging the whole animation behind. Sleeping
@@ -296,5 +374,37 @@ int LavaCommand::run(Terminal& terminal) const {
         }
     }
     terminal.endFrame();
+
+    if (stats_) {
+        const double wall = std::chrono::duration<double>(Clock::now() - start).count();
+        const double perFrame = frames > 0 ? static_cast<double>(frames) : 1.0;
+        char report[640];
+        std::snprintf(report, sizeof(report),
+                      "frames    %lld in %.2f s\n"
+                      "achieved  %.1f fps (target %d)\n"
+                      "build     %.2f ms avg, %.2f ms max\n"
+                      "flush     %.2f ms avg, %.2f ms max  (backpressure only)\n"
+                      "output    %.0f bytes/frame, %.2f MB/s\n",
+                      frames, wall,
+                      wall > 0.0 ? frames / wall : 0.0, framesPerSecond,
+                      buildMicros / perFrame / 1000.0, buildMax / 1000.0,
+                      flushMicros / perFrame / 1000.0, flushMax / 1000.0,
+                      static_cast<double>(bytes) / perFrame,
+                      wall > 0.0 ? static_cast<double>(bytes) / wall / 1e6 : 0.0);
+        os::write(report);
+
+        char fenceReport[256];
+        if (fenceFrames > 0) {
+            std::snprintf(fenceReport, sizeof(fenceReport),
+                          "fence     %.2f ms avg, %.2f ms max over %lld frames "
+                          "(terminal finished processing)\n",
+                          fenceMicros / static_cast<double>(fenceFrames) / 1000.0,
+                          fenceMax / 1000.0, fenceFrames);
+        } else {
+            std::snprintf(fenceReport, sizeof(fenceReport),
+                          "fence     unavailable: the terminal did not answer ESC[6n\n");
+        }
+        os::write(fenceReport);
+    }
     return 0;
 }

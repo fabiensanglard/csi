@@ -51,11 +51,13 @@ void Terminal::endFrame() {
     commit();
 }
 
-void Terminal::commit() {
+std::size_t Terminal::commit() {
+    const std::size_t size = buffer_.size();
     if (!buffer_.empty()) {
         os::write(buffer_);
         buffer_.clear();
     }
+    return size;
 }
 
 void Terminal::writeText(const std::string& text) {

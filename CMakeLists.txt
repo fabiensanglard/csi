@@ -17,6 +17,7 @@ add_executable(csi
     src/commands/lava_command.cpp
     src/commands/palette256_command.cpp
     src/terminal/csi.cpp
+    src/terminal/fence.cpp
     src/terminal/terminal.cpp
     src/terminal/terminal16.cpp
     src/terminal/terminal256.cpp
