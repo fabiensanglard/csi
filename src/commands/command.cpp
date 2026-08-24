@@ -94,7 +94,7 @@ void printUsage(Terminal& terminal, const char* program) {
     terminal.writeText("   <c|bg>             Fill glyph or background\n");
     terminal.setTextColor({255, 255, 0});
     terminal.writeText("  --seconds");
-    terminal.writeText(" <n>             Stop after n seconds (default: Ctrl-C)\n\n");
+    terminal.writeText(" <n>               Stop after n seconds (default: Ctrl-C)\n\n");
 
     terminal.setBold(true);
     terminal.writeText("Global options:\n");
@@ -104,10 +104,10 @@ void printUsage(Terminal& terminal, const char* program) {
     terminal.writeText("  <16|256|RGB>       Terminal color space\n");
     terminal.setTextColor({255, 255, 0});
     terminal.writeText("  -h, --help");
-    terminal.writeText("              Show this help\n");
+    terminal.writeText("                  Show this help\n");
     terminal.setTextColor({255, 255, 0});
     terminal.writeText("  -v, --version");
-    terminal.writeText("           Show version\n");
+    terminal.writeText("               Show version\n");
     terminal.resetColor();
     terminal.commit();
 }

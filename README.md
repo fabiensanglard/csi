@@ -63,13 +63,28 @@ csi 256
 
 ## Options
 
-| Option | Scope | Values |
-| --- | --- | --- |
-| `--space` | global | `16`, `256`, `RGB` (default `RGB`) |
-| `--mode` | `fill`, `--space 256` only | `all`, `known`, `cube` (default `all`) |
-| `--color` | `fill` | `black`, `white`, `red`, `green`, `blue`, `#RRGGBB` (default black) |
-| `--fill` | `fill`, `lava` | `bg` for colored backgrounds, `c` for `█` glyphs (default `bg`) |
-| `--seconds` | `lava` | stop after n seconds |
+```
+Usage: csi <command> [options]
+
+Commands:
+  fill       Render the gradient
+  lava       Animate Quake lava at 30 fps
+  256        Chart the 256-color palette with each index
+
+fill options:
+  --color  <name|#RRGGBB>     Upper-right corner color
+  --fill   <c|bg>             Fill glyph or background
+  --mode   <all|known|cube>   Palette subset (--space 256 only)
+
+lava options:
+  --fill   <c|bg>             Fill glyph or background
+  --seconds <n>               Stop after n seconds (default: Ctrl-C)
+
+Global options:
+  --space  <16|256|RGB>       Terminal color space
+  -h, --help                  Show this help
+  -v, --version               Show version
+```
 
 `--mode` picks which slice of the palette a nearest match may draw from. `all` uses
 every entry; `known` skips the sixteen system colors, whose values are whatever the
