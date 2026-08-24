@@ -67,6 +67,18 @@ std::string deviceStatusReport() {
     return "\x1b[6n";
 }
 
+std::string primaryDeviceAttributes() {
+    return "\x1b[c";
+}
+
+std::string beginSynchronizedUpdate() {
+    return "\x1b[?2026h";
+}
+
+std::string endSynchronizedUpdate() {
+    return "\x1b[?2026l";
+}
+
 std::string hideCursor() {
     return "\x1b[?25l";
 }

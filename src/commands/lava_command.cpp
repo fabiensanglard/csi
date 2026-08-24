@@ -182,11 +182,12 @@ double sampleTexture(const Texture& texture, double s, double t) {
 void LavaCommand::parseArgs(int argc, char* argv[]) {
     for (int argumentIndex = 0; argumentIndex < argc; ++argumentIndex) {
         const std::string argument = argv[argumentIndex];
-        if (argument == "--stats" || argument == "--no-stats") {
-            stats_ = argument == "--stats";
+        if (argument == "--no-stats") {
+            fenceMode_ = FenceMode::None;
             continue;
         }
-        if (argument != "--fill" && argument != "--seconds" && argument != "--fps") {
+        if (argument != "--fill" && argument != "--seconds" && argument != "--fps"
+            && argument != "--stats") {
             throw std::invalid_argument("unknown option: " + argument);
         }
         if (argumentIndex + 1 >= argc) {
@@ -195,6 +196,8 @@ void LavaCommand::parseArgs(int argc, char* argv[]) {
         const std::string value = argv[++argumentIndex];
         if (argument == "--fill") {
             fillStyle_ = parseFillStyle(value);
+        } else if (argument == "--stats") {
+            fenceMode_ = parseFenceMode(value);
         } else if (argument == "--fps") {
             try {
                 framesPerSecond_ = std::stoi(value);
@@ -247,7 +250,9 @@ int LavaCommand::run(Terminal& terminal) const {
     // the bytes, whether or not the terminal has looked at them. The fence is the
     // honest one -- a round trip the terminal cannot answer until it has processed
     // the frame. The sleep that paces the loop is outside all three.
-    Fence fence;
+    const bool measuring = fenceMode_ != FenceMode::None;
+    Fence fence(fenceMode_);
+    terminal.setSynchronized(fenceMode_ == FenceMode::Sync);
     long long frames = 0;
     long long buildMicros = 0;
     long long flushMicros = 0;
@@ -331,7 +336,7 @@ int LavaCommand::run(Terminal& terminal) const {
         const std::size_t written = terminal.commit();
         const auto flushEnd = Clock::now();
 
-        const long long fenced = stats_ ? fence.wait() : -1;
+        const long long fenced = fence.wait();
 
         const auto build = std::chrono::duration_cast<std::chrono::microseconds>(flushStart - frameStart).count();
         const auto flush = std::chrono::duration_cast<std::chrono::microseconds>(flushEnd - flushStart).count();
@@ -380,7 +385,7 @@ int LavaCommand::run(Terminal& terminal) const {
     }
     terminal.endFrame();
 
-    if (stats_) {
+    if (measuring) {
         const double wall = std::chrono::duration<double>(Clock::now() - start).count();
         const double perFrame = frames > 0 ? static_cast<double>(frames) : 1.0;
         char report[640];
@@ -401,13 +406,16 @@ int LavaCommand::run(Terminal& terminal) const {
         char fenceReport[256];
         if (fenceFrames > 0) {
             std::snprintf(fenceReport, sizeof(fenceReport),
-                          "fence     %.2f ms avg, %.2f ms max over %lld frames "
-                          "(terminal finished processing)\n",
+                          "fence     %.2f ms avg, %.2f ms max over %lld frames (%s)\n",
                           fenceMicros / static_cast<double>(fenceFrames) / 1000.0,
-                          fenceMax / 1000.0, fenceFrames);
+                          fenceMax / 1000.0, fenceFrames, fenceModeName(fenceMode_));
+        } else if (fenceMode_ == FenceMode::Flush) {
+            std::snprintf(fenceReport, sizeof(fenceReport),
+                          "fence     flush only, no round trip requested\n");
         } else {
             std::snprintf(fenceReport, sizeof(fenceReport),
-                          "fence     unavailable: the terminal did not answer ESC[6n\n");
+                          "fence     %s unavailable: the terminal did not answer\n",
+                          fenceModeName(fenceMode_));
         }
         os::write(fenceReport);
     }

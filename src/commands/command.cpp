@@ -99,8 +99,12 @@ void printUsage(Terminal& terminal, const char* program) {
     terminal.writeText("  --fps");
     terminal.writeText("    <n>                Cap the frame rate, 0 for uncapped\n");
     terminal.setTextColor({255, 255, 0});
+    terminal.writeText("  --stats");
+    terminal.writeText("  <none|flush|drain|dsr|da|sync>\n");
+    terminal.writeText("                              How each frame is fenced\n");
+    terminal.setTextColor({255, 255, 0});
     terminal.writeText("  --no-stats");
-    terminal.writeText("                  Skip the per-frame fence timing\n\n");
+    terminal.writeText("                  Same as --stats none\n\n");
 
     terminal.setBold(true);
     terminal.writeText("Global options:\n");

@@ -88,6 +88,11 @@ void sleepMilliseconds(int milliseconds) {
     }
 }
 
+void drainOutput() {
+    // The console API has no equivalent of tcdrain: writes are synchronous by the
+    // time WriteFile returns, so there is nothing left to wait for.
+}
+
 void write(const std::string& text) {
     std::fwrite(text.data(), 1, text.size(), stdout);
     std::fflush(stdout);

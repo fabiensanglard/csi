@@ -50,6 +50,10 @@ public:
     // beginFrame/endFrame bracket a full-screen render: begin clears the screen and
     // hides the cursor, end restores the cursor, resets attributes, and commits.
     // Output that is not a frame, such as help text, buffers and commits directly.
+    // Wraps each frame in DEC mode 2026 so the terminal presents it atomically.
+    // Terminals that do not know the mode ignore both sequences.
+    void setSynchronized(bool enabled);
+
     void beginFrame();
     // Starts an animation frame that repaints every cell: homes the cursor without
     // clearing, so the terminal never shows a blank screen between frames.
@@ -76,6 +80,10 @@ private:
     // The color sequence currently in effect, so a run of same-colored cells costs
     // one sequence instead of one per cell. Cleared whenever attributes are reset.
     std::string activeColorSequence_;
+    bool synchronized_ = false;
+    // Set between a begin and its commit, so the closing sequence is emitted once
+    // per frame and never on plain buffered output such as help text.
+    bool frameOpen_ = false;
 };
 
 ColorMode parseColorMode(const std::string& value);
