@@ -42,7 +42,7 @@ Quake's turbulent surface effect at 30 fps: a lava texture sampled through a sin
 warp that displaces each axis by the turbulence read at the other, so the surface
 rolls rather than slides. Runs until Ctrl-C, or `--seconds <n>`.
 
-The frame rate is shown in the top-left corner and a timing breakdown is printed on
+The frame rate is shown in the bottom-right corner and a timing breakdown is printed on
 exit. That rate counts frames *submitted*, not frames you saw: the loop is paced, so
 it reads 30 whenever the program is not blocked, even if the terminal coalesces those
 updates into fewer repaints. Run `--fps 0` to remove the pacing and measure the real

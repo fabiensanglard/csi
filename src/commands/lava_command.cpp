@@ -320,13 +320,17 @@ int LavaCommand::run(Terminal& terminal) const {
         // Just the rate, so the corner stays readable over the animation. The
         // timing breakdown belongs in the summary printed on exit.
         char overlay[32];
-        if (displayedFps <= 0.0) {
-            // No interval to measure yet on the very first frame.
-            std::snprintf(overlay, sizeof(overlay), " -- fps ");
-        } else {
-            std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
+        int overlayLength = displayedFps <= 0.0
+                                // No interval to measure yet on the very first frame.
+                                ? std::snprintf(overlay, sizeof(overlay), " -- fps ")
+                                : std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
+        if (overlayLength < 0) {
+            overlayLength = 0;
         }
-        terminal.writeText(csi::cursorTo(1, 1));
+        // Bottom right, stopping one column short of the edge: writing the last cell
+        // of a row arms the pending-wrap flag, and there is no reason to risk it.
+        const int overlayColumn = dimensions.columns - overlayLength;
+        terminal.writeText(csi::cursorTo(dimensions.rows, overlayColumn > 0 ? overlayColumn : 1));
         terminal.setBGColor({0, 0, 0});
         terminal.setTextColor({255, 255, 255});
         terminal.writeText(overlay);
