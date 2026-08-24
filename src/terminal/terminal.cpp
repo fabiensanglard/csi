@@ -14,12 +14,6 @@ Terminal::~Terminal() {
     os::restoreTerminal();
 }
 
-void Terminal::init() {
-    constexpr int initialColumns = 120;
-    constexpr int initialRows = 30;
-    // resize(initialColumns, initialRows);
-}
-
 void Terminal::resize(int columns, int rows) {
     buffer_ += csi::resize(columns, rows);
     commit();

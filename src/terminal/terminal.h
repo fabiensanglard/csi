@@ -30,10 +30,6 @@ public:
     Terminal(const Terminal&) = delete;
     Terminal& operator=(const Terminal&) = delete;
 
-    // Requests the window size this renderer is written for. Call once, right after
-    // the terminal is created.
-    void init();
-
     // Asks the terminal to resize its window to columns x rows and flushes the
     // request, since it has to land before anything is drawn against the new size.
     // Terminals that refuse window manipulation keep their current size, and the

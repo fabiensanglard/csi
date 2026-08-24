@@ -57,7 +57,6 @@ int main(int argc, char* argv[]) {
     try {
         const GlobalArgs globalArgs = parseGlobalArgs(argc, argv);
         const std::unique_ptr<Terminal> terminal = createTerminal(globalArgs.colorMode);
-        terminal->init();
         os::installInterruptHandler();
 
         if (globalArgs.version) {
