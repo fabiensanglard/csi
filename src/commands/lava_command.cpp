@@ -30,7 +30,6 @@ constexpr double amplitude = 10.164;
 constexpr double texelsPerColumn = 1.0;
 constexpr double texelsPerRow = 2.0;
 
-constexpr int framesPerSecond = 30;
 
 // One period, plus a repeat of the first entry so a fractional read never runs off
 // the end. Quake read this table at integer positions in 16.16 fixed point; at cell
@@ -183,11 +182,11 @@ double sampleTexture(const Texture& texture, double s, double t) {
 void LavaCommand::parseArgs(int argc, char* argv[]) {
     for (int argumentIndex = 0; argumentIndex < argc; ++argumentIndex) {
         const std::string argument = argv[argumentIndex];
-        if (argument == "--stats") {
-            stats_ = true;
+        if (argument == "--stats" || argument == "--no-stats") {
+            stats_ = argument == "--stats";
             continue;
         }
-        if (argument != "--fill" && argument != "--seconds") {
+        if (argument != "--fill" && argument != "--seconds" && argument != "--fps") {
             throw std::invalid_argument("unknown option: " + argument);
         }
         if (argumentIndex + 1 >= argc) {
@@ -196,6 +195,15 @@ void LavaCommand::parseArgs(int argc, char* argv[]) {
         const std::string value = argv[++argumentIndex];
         if (argument == "--fill") {
             fillStyle_ = parseFillStyle(value);
+        } else if (argument == "--fps") {
+            try {
+                framesPerSecond_ = std::stoi(value);
+            } catch (const std::exception&) {
+                throw std::invalid_argument("--fps must be a whole number of frames");
+            }
+            if (framesPerSecond_ < 0) {
+                throw std::invalid_argument("--fps must not be negative");
+            }
         } else {
             try {
                 seconds_ = std::stod(value);
@@ -228,7 +236,9 @@ int LavaCommand::run(Terminal& terminal) const {
     std::vector<double> rowShift;
 
     using Clock = std::chrono::steady_clock;
-    const auto frameDuration = std::chrono::microseconds(1000000 / framesPerSecond);
+    // 0 means uncapped: no deadline, no sleep, submit as fast as the terminal takes.
+    const bool paced = framesPerSecond_ > 0;
+    const auto frameDuration = std::chrono::microseconds(paced ? 1000000 / framesPerSecond_ : 0);
     const auto start = Clock::now();
     auto deadline = start;
 
@@ -250,7 +260,6 @@ int LavaCommand::run(Terminal& terminal) const {
 
     // Smoothed so the readout is legible rather than flickering every frame.
     double displayedFps = 0.0;
-    double displayedFence = 0.0;
     auto previousFrame = Clock::now();
 
     bool cleared = false;
@@ -303,16 +312,12 @@ int LavaCommand::run(Terminal& terminal) const {
                 terminal.writeText(block ? blockGlyph : " ");
             }
         }
-        // The rate is always on show: it costs nothing but a clock read, and it is
-        // the whole point of pointing this at a terminal. The fence time joins it
-        // only under --stats, since that one costs a round trip per frame.
-        char overlay[64];
+        // Just the rate, so the corner stays readable over the animation. The
+        // timing breakdown belongs in the summary printed on exit.
+        char overlay[32];
         if (displayedFps <= 0.0) {
             // No interval to measure yet on the very first frame.
             std::snprintf(overlay, sizeof(overlay), " -- fps ");
-        } else if (displayedFence > 0.0) {
-            std::snprintf(overlay, sizeof(overlay), " %.1f fps  fence %.1f ms ",
-                          displayedFps, displayedFence);
         } else {
             std::snprintf(overlay, sizeof(overlay), " %.1f fps ", displayedFps);
         }
@@ -351,15 +356,14 @@ int LavaCommand::run(Terminal& terminal) const {
             const double instant = 1.0 / delta;
             displayedFps = displayedFps > 0.0 ? displayedFps * 0.9 + instant * 0.1 : instant;
         }
-        if (fenced >= 0) {
-            const double instant = fenced / 1000.0;
-            displayedFence = displayedFence > 0.0 ? displayedFence * 0.9 + instant * 0.1 : instant;
-        }
 
         // The deadline is absolute, so a frame that sleeps a little long is paid back
         // by the next one instead of dragging the whole animation behind. Sleeping
         // rounds down to whole milliseconds and the last fraction is simply dropped:
         // waking early costs nothing, waking late costs a frame.
+        if (!paced) {
+            continue;
+        }
         deadline += frameDuration;
         auto now = Clock::now();
         if (now > deadline + frameDuration) {
@@ -382,12 +386,12 @@ int LavaCommand::run(Terminal& terminal) const {
         char report[640];
         std::snprintf(report, sizeof(report),
                       "frames    %lld in %.2f s\n"
-                      "achieved  %.1f fps (target %d)\n"
+                      "achieved  %.1f fps (target %d, 0 = uncapped)\n"
                       "build     %.2f ms avg, %.2f ms max\n"
                       "flush     %.2f ms avg, %.2f ms max  (backpressure only)\n"
                       "output    %.0f bytes/frame, %.2f MB/s\n",
                       frames, wall,
-                      wall > 0.0 ? frames / wall : 0.0, framesPerSecond,
+                      wall > 0.0 ? frames / wall : 0.0, framesPerSecond_,
                       buildMicros / perFrame / 1000.0, buildMax / 1000.0,
                       flushMicros / perFrame / 1000.0, flushMax / 1000.0,
                       static_cast<double>(bytes) / perFrame,

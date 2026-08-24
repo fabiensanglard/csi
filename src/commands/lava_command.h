@@ -14,5 +14,9 @@ public:
 private:
 	FillStyle fillStyle_ = FillStyle::Background;
 	double seconds_ = 0.0;  // 0 runs until Ctrl-C
-	bool stats_ = false;
+	bool stats_ = true;  // --no-stats opts out of the per-frame fence
+	// 0 removes the pacing entirely, so the loop runs as fast as the terminal will
+	// take frames. That is the only way the readout measures the terminal rather
+	// than the pacing.
+	int framesPerSecond_ = 30;
 };

@@ -42,8 +42,17 @@ Quake's turbulent surface effect at 30 fps: a lava texture sampled through a sin
 warp that displaces each axis by the turbulence read at the other, so the surface
 rolls rather than slides. Runs until Ctrl-C, or `--seconds <n>`.
 
-The frame rate is shown in the top-left corner. `--stats` adds the fence time
-beside it and prints a timing breakdown on exit. The interesting number is `fence`: flushing a frame only tells
+The frame rate is shown in the top-left corner and a timing breakdown is printed on
+exit; `--no-stats` turns the per-frame measurement off.
+
+That rate counts frames *submitted*, not frames you saw. The loop is paced to 30 fps,
+so the readout sits at 30 whenever the program is not blocked, even if the terminal
+coalesces those updates into fewer repaints -- no terminal acknowledges a repaint, so
+nothing in-band can see that. Run `--fps 0` to remove the pacing and let the loop go
+as fast as the terminal will take frames; that number is a real ceiling and is what
+to compare between terminals.
+
+The other number worth reading is `fence`: flushing a frame only tells
 you the kernel accepted the bytes, so instead each frame is followed by `ESC[6n`,
 whose reply a terminal cannot send until it has parsed everything queued ahead of
 it. That round trip is what the terminal actually spent on the frame. It measures
@@ -86,7 +95,8 @@ fill options:
 lava options:
   --fill   <c|bg>             Fill glyph or background
   --seconds <n>               Stop after n seconds (default: Ctrl-C)
-  --stats                     Show frame rate and report timing
+  --fps    <n>                Cap the frame rate, 0 for uncapped
+  --no-stats                  Skip the per-frame fence timing
 
 Global options:
   --space  <16|256|RGB>       Terminal color space

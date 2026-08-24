@@ -96,8 +96,11 @@ void printUsage(Terminal& terminal, const char* program) {
     terminal.writeText("  --seconds");
     terminal.writeText(" <n>               Stop after n seconds (default: Ctrl-C)\n");
     terminal.setTextColor({255, 255, 0});
-    terminal.writeText("  --stats");
-    terminal.writeText("                     Show frame rate and report timing\n\n");
+    terminal.writeText("  --fps");
+    terminal.writeText("    <n>                Cap the frame rate, 0 for uncapped\n");
+    terminal.setTextColor({255, 255, 0});
+    terminal.writeText("  --no-stats");
+    terminal.writeText("                  Skip the per-frame fence timing\n\n");
 
     terminal.setBold(true);
     terminal.writeText("Global options:\n");
