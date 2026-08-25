@@ -16,9 +16,8 @@ public:
 private:
 	FillStyle fillStyle_ = FillStyle::Background;
 	double seconds_ = 0.0;  // 0 runs until Ctrl-C
-	// How each frame is fenced, and whether the timing summary is printed at all.
-	// FenceMode::None is the quiet run.
-	FenceMode fenceMode_ = FenceMode::Dsr;
+	// --no-stats gives a quiet run: no fence round trip, no summary.
+	bool stats_ = true;
 	// 0 removes the pacing entirely, so the loop runs as fast as the terminal will
 	// take frames. That is the only way the readout measures the terminal rather
 	// than the pacing.

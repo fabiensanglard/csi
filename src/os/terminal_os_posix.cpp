@@ -81,10 +81,6 @@ void sleepMilliseconds(int milliseconds) {
     }
 }
 
-void drainOutput() {
-    tcdrain(STDOUT_FILENO);
-}
-
 void write(const std::string& text) {
     std::fwrite(text.data(), 1, text.size(), stdout);
     std::fflush(stdout);

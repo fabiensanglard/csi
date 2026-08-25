@@ -29,10 +29,6 @@ std::size_t readTerminal(char* data, std::size_t size, int timeoutMilliseconds);
 void installInterruptHandler();
 bool interrupted();
 void waitForInterrupt();
-// Blocks until every byte already written has been handed to the terminal, rather
-// than merely queued in the kernel. One step stronger than fflush, still weaker than
-// asking the terminal a question. A no-op where the platform has no equivalent.
-void drainOutput();
 void write(const std::string& text);
 void write(const char* data, std::size_t size);
 

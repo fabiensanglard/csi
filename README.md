@@ -42,30 +42,19 @@ Quake's turbulent surface effect at 30 fps: a lava texture sampled through a sin
 warp that displaces each axis by the turbulence read at the other, so the surface
 rolls rather than slides. Runs until Ctrl-C, or `--seconds <n>`.
 
-The frame rate is shown in the bottom-right corner and a timing breakdown is printed on
-exit. That rate counts frames *submitted*, not frames you saw: the loop is paced, so
-it reads 30 whenever the program is not blocked, even if the terminal coalesces those
-updates into fewer repaints. Run `--fps 0` to remove the pacing and measure the real
-ceiling; that is the number to compare between terminals.
+The frame rate is shown in the bottom-right corner and a timing breakdown is printed
+on exit; `--no-stats` turns the per-frame measurement off. That rate counts frames
+*submitted*, not frames you saw: the loop is paced, so it reads 30 whenever the
+program is not blocked, even if the terminal coalesces those updates into fewer
+repaints. Run `--fps 0` to remove the pacing and measure the real ceiling; that is
+the number to compare between terminals.
 
-`--stats` picks how each frame is fenced, weakest to strongest. None of them reach
-photons -- no terminal acknowledges a present, so compositing and refresh are outside
-all of them.
-
-| mode | what it waits for | what it proves |
-| --- | --- | --- |
-| `none` | nothing, and no summary | quiet run |
-| `flush` | `fwrite` + `fflush` returning | the kernel accepted the bytes |
-| `drain` | `tcdrain` | every byte reached the terminal |
-| `dsr` | reply to `ESC[6n` | the terminal parsed the frame |
-| `da` | reply to `ESC[c` | same, via a different query |
-| `sync` | frame wrapped in DEC 2026, then `ESC[6n` | parsed, and presented atomically |
-
-`dsr` is the default. `sync` also removes tearing, since the terminal buffers the
-frame and presents it in one go, and lets it skip intermediate repaints -- but
-Terminal.app does not implement mode 2026, so there it costs nothing and does
-nothing. A terminal that never answers a query retires that fence after one timeout
-rather than paying it every frame.
+The number worth reading is `fence`. Flushing a frame only tells you the kernel
+accepted the bytes, so each frame is followed by `ESC[c`, a request for the
+terminal's device attributes. Its reply cannot come back until the terminal has
+parsed everything queued ahead of the query, so the round trip is what the terminal
+actually spent on the frame. It measures processing, not pixels -- no terminal
+acknowledges a present.
 
 ```sh
 csi lava
@@ -105,9 +94,7 @@ lava options:
   --fill   <c|bg>             Fill glyph or background
   --seconds <n>               Stop after n seconds (default: Ctrl-C)
   --fps    <n>                Cap the frame rate, 0 for uncapped
-  --stats  <none|flush|drain|dsr|da|sync>
-                              How each frame is fenced
-  --no-stats                  Same as --stats none
+  --no-stats                  Skip the per-frame fence timing
 
 Global options:
   --space  <16|256|RGB>       Terminal color space

@@ -36,18 +36,9 @@ std::string resize(int columns, int rows);
 std::string eraseDisplay();
 std::string cursorHome();
 std::string cursorTo(int row, int column);
-// Device Status Report, cursor position. The terminal answers ESC[row;colR, but only
-// after it has parsed everything queued ahead of the query. See fence.h.
-std::string deviceStatusReport();
-// Primary Device Attributes. Like DSR it is answered only after everything queued
-// ahead of it has been parsed, so it works as a fence too; some terminals treat the
-// two queries differently, which is why both are offered.
+// Primary Device Attributes. The terminal answers ESC[?...c, but only after it has
+// parsed everything queued ahead of the query. See fence.h.
 std::string primaryDeviceAttributes();
-// DEC private mode 2026, synchronized output. Between these the terminal buffers
-// updates and presents them as one frame, which removes tearing. It defers the
-// present; it does not report when the present happened.
-std::string beginSynchronizedUpdate();
-std::string endSynchronizedUpdate();
 std::string hideCursor();
 std::string showCursor();
 

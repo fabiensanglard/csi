@@ -35,24 +35,12 @@ os::TerminalSize Terminal::drawingArea() const {
     return {actual.columns, drawableRows};
 }
 
-void Terminal::setSynchronized(bool enabled) {
-    synchronized_ = enabled;
-}
-
 void Terminal::beginFrame() {
-    if (synchronized_) {
-        buffer_ += csi::beginSynchronizedUpdate();
-        frameOpen_ = true;
-    }
     buffer_ += csi::eraseDisplay() + csi::cursorHome() + csi::hideCursor();
     activeColorSequence_.clear();
 }
 
 void Terminal::beginRepaint() {
-    if (synchronized_) {
-        buffer_ += csi::beginSynchronizedUpdate();
-        frameOpen_ = true;
-    }
     buffer_ += csi::cursorHome() + csi::hideCursor();
     activeColorSequence_.clear();
 }
@@ -64,10 +52,6 @@ void Terminal::endFrame() {
 }
 
 std::size_t Terminal::commit() {
-    if (frameOpen_) {
-        buffer_ += csi::endSynchronizedUpdate();
-        frameOpen_ = false;
-    }
     const std::size_t size = buffer_.size();
     if (!buffer_.empty()) {
         os::write(buffer_);
